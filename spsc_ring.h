@@ -5,7 +5,8 @@
 
 #include<algorithm>
 
-namespace io{
+#include"common.h"
+
 
 template<typename type, unsigned size>
 class spsc_ring{
@@ -74,7 +75,7 @@ uint32_t spsc_ring<type, size>::consume_all(type** start_obj){
     uint32_t count;
     uint32_t size = this->prod_.size;
     uint32_t head = this->cons_.head;
-    __sync_synchronize();
+    fence;
     uint32_t tail = this->prod_.head;
     int free_entries = tail - head;
     start = head;
@@ -104,7 +105,7 @@ void spsc_ring<type, size>::product(type* obj){
         start = tail;
     }
     this->ring_[start] = obj;
-    this->prod_.head++;
+    this->prod_.head++;`
     __sync_synchronize();
 }
 
@@ -116,9 +117,10 @@ uint32_t spsc_ring<type, size>::product_n(type** obj, int n){
     __sync_synchronize();
     uint32_t head = this->cons_.head;
     uint32_t mask = this->prod_.mask;
+    uint32_t size = this->prod_.size;
     int free_entries = head + mask - tail;
     count = std::min(free_entries, n);
-    start = start % size;
+    start = tail % size;
     for(int i = start, j = 0; i < count; ++i){
         this->ring_[i] = obj[j];
     }
@@ -127,6 +129,5 @@ uint32_t spsc_ring<type, size>::product_n(type** obj, int n){
     return count;
 }
 
-} //namespace io
 
 #endif /** _SPSC_RING_INCLUDE_H_ */
